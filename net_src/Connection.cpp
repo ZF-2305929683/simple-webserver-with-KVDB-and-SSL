@@ -189,5 +189,8 @@ void Connection::send(std::string msg){
 
 void Connection::Business(){
   Read();
-  onMessageCallback_(this);
+  if(state_ == Connected){
+    onMessageCallback_(this);
+  }
+  
 }

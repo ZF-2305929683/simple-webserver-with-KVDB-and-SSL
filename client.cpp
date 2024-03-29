@@ -40,9 +40,8 @@ int main() {
     client_1.msg = str;
 
     Serlize(stream,client_1);
-    std::string tmp((const char*)stream.get_buffer().data(),stream.get_buffer().size());
     
-    conn->SetSendBuffer(tmp.data(),tmp.size());
+    conn->SetSendBuffer((const char*)stream.get_buffer().data(),stream.get_buffer().size());
     stream.Clear();
 
     conn->Write();

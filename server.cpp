@@ -5,6 +5,29 @@
 #include <memory>
 #include <map>
 #include <iostream>
+#include "byteSerialize/byteSerializer.h"
+#include "net_src/Buffer.h"
+
+
+struct client_struct
+{
+    int key;
+    std::string name;
+    std::string msg;
+}; 
+
+template<>
+struct TypeInfo<client_struct> :TypeInfoBase<client_struct>
+{
+    static constexpr AttrList attrs = {};
+    static constexpr FieldList fields = {
+        Field {register("key"), &Type::key},
+        Field {register("name"), &Type::name},
+        Field {register("msg"), &Type::msg},
+    };
+};
+
+
 
 int main()
 {
@@ -24,10 +47,22 @@ int main()
         }
     });
 
+    ByteStream stream;
+
     server->OnMessage(
       [&](Connection *conn){
-        std::cout << "Message from client " << conn->ReadBuffer() << std::endl;
+
+       
+        ByteStream stream(conn->ReadBuffer(),conn->GetReadBuffer()->size());
+        client_struct client;
+        Deserlize(stream,client);
+
+        std::cout<<"\n";
+        std::cout << "Message from client: " << client.key <<"\n"<<"Name is: "<< client.name <<"\n"<<"Message is: " << client.msg <<"\n";
+        std::cout<<"\n";
+        
         std::string str = "hahahahahah";
+
         for(auto &each : clients){
           Connection *client = each.second;
           client->SetSendBuffer(str.c_str());

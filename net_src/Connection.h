@@ -34,6 +34,7 @@ public:
     State GetState();
     void Close();
     void SetSendBuffer(const char *str);
+    void SetSendBuffer(const char* str,size_t len);
     Buffer *GetReadBuffer();
     const char* ReadBuffer();
     Buffer *GetSendBuffer();

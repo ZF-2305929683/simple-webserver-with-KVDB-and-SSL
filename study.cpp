@@ -3,14 +3,28 @@
 #include "Singleton.h"
 #include <string>
 #include "net_src/ThreadPool.h"
+#include "byteSerialize/byteSerializer.h"
+#include <iostream>
+struct node
+{
+  int key;
+  std::string value;
+};
+
+
+template<>
+struct TypeInfo<node> :TypeInfoBase<node>
+{
+    static constexpr AttrList attrs = {};
+    static constexpr FieldList fields = {
+        Field {register("K"), &Type::key},
+        Field {register("V"), &Type::value},
+    };
+};
+
+
 int main() 
 {
-  ThreadPool thpoll(3);
-  for (int i = 0; i < 3; ++i) {
-        auto result_future = thpoll.add([](int id) {
-            std::cout << "Processing task " << id << std::endl;
-            // 模拟一些耗时操作
-            while(1);
-        }, i);
-    }
+  
+
 }

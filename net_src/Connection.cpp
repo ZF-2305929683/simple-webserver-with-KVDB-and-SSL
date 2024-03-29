@@ -40,7 +40,6 @@ void Connection::Read()
     readBuffer_->clear();
     if(sock_->Isnonblocking()) ReadNonBlocking();
     else ReadBlocking();
-    
 }
 
 void Connection::Write()
@@ -151,6 +150,8 @@ Connection::State Connection::GetState(){return state_;}
 
 void Connection::SetSendBuffer(const char* str){sendBuffer_->SetBuf(str);}
 
+void Connection::SetSendBuffer(const char* str,size_t len){sendBuffer_->SetBuf(str,len);}
+
 Buffer *Connection::GetReadBuffer() {return readBuffer_;}
 
 const char* Connection::ReadBuffer(){return readBuffer_->c_str();}
@@ -192,5 +193,4 @@ void Connection::Business(){
   if(state_ == Connected){
     onMessageCallback_(this);
   }
-  
 }

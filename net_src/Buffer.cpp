@@ -10,7 +10,6 @@ void Buffer::append(const char* str,int size)
 {
     for(int i = 0;i<size;++i)
     {
-        if(str[i] == '\0') break;
         buf_.push_back(str[i]);
     }
 }
@@ -40,4 +39,10 @@ void Buffer::SetBuf(const char *buffer)
 {
     buf_.clear();
     buf_.append(buffer);
+}
+
+void Buffer::SetBuf(const char *buffer, size_t length)
+{
+    buf_.clear();
+    buf_.insert(buf_.end(), buffer, buffer + length);
 }

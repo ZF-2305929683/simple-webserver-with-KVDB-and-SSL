@@ -1,3 +1,4 @@
+#pragma once
 #include<vector>
 #include<cstdint>
 #include<string>
@@ -14,6 +15,20 @@ public:
     /// @brief 默认构造函数，拷贝构造与移动构造函数
     ByteStream(){}
     ByteStream(const std::vector<uint8_t>& data):buffer_(data){}
+
+    ByteStream(const char* data){
+        size_t dataSize = strlen(data);
+        buffer_.reserve(dataSize); // 预先分配空间
+        buffer_.resize(dataSize); // 改变容器大小并初始化元素（可选，取决于你的需求）
+        std::copy(data, data + dataSize, buffer_.begin());
+    }
+
+    ByteStream(const char* data,size_t len){
+        buffer_.reserve(len); // 预先分配空间
+        buffer_.resize(len); // 改变容器大小并初始化元素（可选，取决于你的需求）
+        std::copy(data, data + len, buffer_.begin());
+    }
+
     ByteStream(ByteStream&& other):buffer_(std::move(other.buffer_)){}
     ByteStream& operator=(const ByteStream& other){
         buffer_.assign(other.buffer_.begin(), other.buffer_.end());
@@ -25,6 +40,9 @@ public:
         return *this;
     }
 
+    void Clear(){
+        buffer_.clear();
+    }
     void append(const void* data, size_t length) {
         buffer_.insert(buffer_.end(), (uint8_t*)data, (uint8_t*)data + length);
     }
@@ -123,7 +141,10 @@ void Deserlize(ByteStream& stream,T &t){
 }
 
 
-struct Vec{
+
+
+/// 使用示例
+/*struct Vec{
     float x;
     float y;
     std::string str;
@@ -143,5 +164,5 @@ struct TypeInfo<Vec> :TypeInfoBase<Vec>
         Field {register("str"), &Type::str},
         Field {register("vx"), &Type::vx},
     };
-};
+};*/
 

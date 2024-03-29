@@ -19,5 +19,6 @@ public:
     void clear();
     void getline();
     void SetBuf(const char *buf);
+    void SetBuf(const char *buffer, size_t length);
 };
 

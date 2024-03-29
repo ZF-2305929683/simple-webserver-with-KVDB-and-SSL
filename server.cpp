@@ -7,13 +7,16 @@
 #include <iostream>
 #include "byteSerialize/byteSerializer.h"
 #include "net_src/Buffer.h"
-
+#include "simple KVdb/GlobalCommandList.h"
+#include "simple KVdb/skiplist.h"
+#include "Singleton.h"
 
 struct client_struct
 {
     int key;
     std::string name;
     std::string msg;
+    std::string Command;
 }; 
 
 template<>
@@ -24,6 +27,7 @@ struct TypeInfo<client_struct> :TypeInfoBase<client_struct>
         Field {register("key"), &Type::key},
         Field {register("name"), &Type::name},
         Field {register("msg"), &Type::msg},
+        Field {register("Command"), &Type::Command},
     };
 };
 
@@ -33,6 +37,9 @@ int main()
 {
     std::map<int, Connection *> clients;
     EventLoop *loop = new EventLoop();
+
+    SkipList<std::string,std::string> &KV_DB = Singleton<SkipList<std::string,std::string>>::Instance(3);
+    GlobalCommandList &global_list = Singleton<GlobalCommandList>::Instance();
 
     Server *server = new Server(loop);
 
@@ -58,9 +65,11 @@ int main()
         Deserlize(stream,client);
 
         std::cout<<"\n";
-        std::cout << "Message from client: " << client.key <<"\n"<<"Name is: "<< client.name <<"\n"<<"Message is: " << client.msg <<"\n";
+        std::cout << "Message from client: " << client.key <<"\n"<<"Name is: "<< client.name <<"\n"<<"Message is: " << client.msg <<"\n""Command is: " << client.Command <<"\n";
         std::cout<<"\n";
-        
+
+        global_list.Insert(client.Command);
+
         std::string str = "hahahahahah";
 
         for(auto &each : clients){
@@ -70,7 +79,26 @@ int main()
         }
       }
     );
+
+    std::thread readAnd_Do([&]() {
+    while (true) {
+            std::string Command;
+            std::string key;
+            std::string value;
+            
+    
+            global_list.CommandParsing(Command,key,value);
+    
+            if(Command == "Insert") KV_DB.insert_element(key,value);
+            else if(Command == "display") KV_DB.display_list();
+            else{
+              std::cout<<"命令错误"<<"\n";
+            }
+
+        }
+    });
     loop->loop();
+    if(readAnd_Do.joinable()) readAnd_Do.join();
     return 0;
 }
 

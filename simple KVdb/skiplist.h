@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
+#include "BloomFliter.h"
 
 template<typename K, typename V>
 class Node {
@@ -113,6 +114,8 @@ private:
     uint32_t element_count;
 	
 	std::mutex lock;
+
+    BloomFliter fliter;
 };
 
 
@@ -206,6 +209,7 @@ void SkipList<K, V>::insert_element(const K key, const V value)
             insert_node->forward[i] = update[i]->forward[i];
             update[i]->forward[i] = insert_node;
         }
+        fliter.add(key);
         std::cout << "Successfully inserted key:" << key << ", value:" << value << std::endl;
         element_count++;
 
@@ -216,6 +220,12 @@ void SkipList<K, V>::insert_element(const K key, const V value)
 template<typename K, typename V>
 bool SkipList<K, V>::search_element(K key)
 {
+    if(fliter.find(key) == false) 
+    {
+        std::cout << "Not Found Key:" << key << std::endl;
+        return false;
+    }
+
     Node<K, V>* node = header;
 
     for (int i = skiplist_level; i >= 0; i--) 
@@ -241,9 +251,14 @@ bool SkipList<K, V>::search_element(K key)
 template<typename K, typename V>
 void SkipList<K, V>::delete_element(K key) 
 {
+    if(fliter.find(key) == false) 
+    {
+        std::cout << "Key " << key << " not found in the skiplist." << std::endl;
+        return;
+    }
 
     std::lock_guard<std::mutex> guard(lock);
-    Node<K, V>* node = this->_header;
+    Node<K, V>* node = this->header;
     Node<K, V>* update[max_level + 1];
     memset(update, 0, sizeof(Node<K, V>*) * (max_level + 1));
 
@@ -281,6 +296,10 @@ void SkipList<K, V>::delete_element(K key)
         std::cout << "Successfully deleted key " << key << std::endl;
         delete node;
         element_count--;
+    }
+    else 
+    {
+        std::cout << "Key " << key << " not found in the skiplist." << std::endl;
     }
     return;
 }

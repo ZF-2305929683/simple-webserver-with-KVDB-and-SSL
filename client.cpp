@@ -9,6 +9,7 @@ struct client_struct
     int key;
     std::string name;
     std::string msg;
+    std::string Command;
 }; 
 
 template<>
@@ -19,6 +20,7 @@ struct TypeInfo<client_struct> :TypeInfoBase<client_struct>
         Field {register("key"), &Type::key},
         Field {register("name"), &Type::name},
         Field {register("msg"), &Type::msg},
+        Field {register("Command"), &Type::Command},
     };
 };
 
@@ -36,8 +38,12 @@ int main() {
   while(true){
     std::cout<<"输入对话"<<"\n";
     std::string str;
-    std::cin>>str;
+    std::getline(std::cin, str);
     client_1.msg = str;
+    std::cout<<"输入命令"<<"\n";
+    str.clear();
+    std::getline(std::cin, str);
+    client_1.Command = str;
 
     Serlize(stream,client_1);
     

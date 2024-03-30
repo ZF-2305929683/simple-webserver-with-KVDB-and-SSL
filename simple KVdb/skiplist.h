@@ -191,7 +191,7 @@ void SkipList<K, V>::insert_element(const K key, const V value)
 
     if (node == NULL || node->get_key() != key) 
     {
-        int random = get_random_level();
+        uint32_t  random = get_random_level();
 
         if (random > skiplist_level) 
         {

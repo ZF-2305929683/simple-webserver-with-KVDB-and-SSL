@@ -1,3 +1,4 @@
+#pragma once
 #include <string.h>
 #include <iostream>
 #include <span>
@@ -12,7 +13,31 @@
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
+#include "../net_src/Connection.h"
+#include "../byteSerialize/byteSerializer.h"
+#include "../net_src/Buffer.h"
 
+struct SSL_Struct
+{
+    std::string AES_key_;
+    std::string AES_iv_;
+    std::string RSA_public_key;
+    std::string msg;
+}; 
+
+template<>
+struct TypeInfo<SSL_Struct> :TypeInfoBase<SSL_Struct>
+{
+    static constexpr AttrList attrs = {};
+    static constexpr FieldList fields = {
+        Field {register("AES_key_"), &Type::AES_key_},
+        Field {register("AES_iv_"), &Type::AES_iv_},
+        Field {register("RSA_public_key"), &Type::RSA_public_key},
+        Field {register("msg"), &Type::msg},
+    };
+};
+
+enum class NetworkType { Client, Server };
 
 class simple_SSL
 {
@@ -22,7 +47,7 @@ private:
     std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> RSA_public_key = {nullptr, EVP_PKEY_free};
     std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> RSA_private_key = {nullptr, EVP_PKEY_free};
 
-    enum class NetworkType { Client, Server } type_;
+    NetworkType type_;
 
     //////////////////////////////////////////////////////////////////////////////////////简化状态机
     enum class ClientStateMachine { ClientHello, KeyExchange, Finish, WaitingMessage } ClientState_;
@@ -68,9 +93,15 @@ private:
         return AES_init();
     }
 
-    void Client_do_handshake();
+    void Clienthello(Connection* conn,SSL_Struct& ssl,ByteStream& stream);
 
-    bool client_hand_shake();
+    void KeyExchange(Connection* conn,SSL_Struct& ssl,ByteStream& stream);
+
+    void client_WaitingMessage(Connection* conn,SSL_Struct& ssl);
+
+    void Client_do_handshake(Connection* conn,SSL_Struct& ssl,ByteStream& stream);
+
+    bool client_hand_shake(){return ClientState_ != ClientStateMachine::Finish;};
 
 
     
@@ -81,9 +112,15 @@ private:
         return RSA_init();
     }
 
-    void Server_do_handshake();
+    void ServerHello(Connection* conn,SSL_Struct& ssl,ByteStream& stream);
 
-    bool server_hand_shake();
+    void wait_Finish(Connection* conn,SSL_Struct& ssl,ByteStream& stream);
+
+    void server_WaitingMessage(Connection* conn,SSL_Struct& ssl);
+
+    void Server_do_handshake(Connection* conn,SSL_Struct& ssl,ByteStream& stream);
+
+    bool server_hand_shake(){return ServerState_ != ServerStateMachine::Finish;};
     
 public:
     simple_SSL(NetworkType type):type_(type){
@@ -93,16 +130,23 @@ public:
     simple_SSL& operator= (simple_SSL&& other) = delete;
     simple_SSL(const simple_SSL& other) = delete;
     simple_SSL(const simple_SSL&& other) = delete;
-    ~simple_SSL() = delete;
+    ~simple_SSL() {};
 
     bool Init(){
-        if(type_ == NetworkType::Client) client_init();
-        else if(type_ == NetworkType::Server) server_init();
+        if(type_ == NetworkType::Client) return client_init();
+        else if(type_ == NetworkType::Server) return server_init();
+        return false;
     }
 
     bool hand_shake(){
-        if(type_ == NetworkType::Client) client_hand_shake();
-        else if(type_ == NetworkType::Server) server_hand_shake();
+        if(type_ == NetworkType::Client) return client_hand_shake();
+        else if(type_ == NetworkType::Server) return server_hand_shake();
+        return false;
+    }
+
+    void do_hand_shake(Connection* conn,SSL_Struct& ssl,ByteStream& stream){
+        if(type_ == NetworkType::Client) Client_do_handshake(conn,ssl,stream);
+        else if(type_ == NetworkType::Server) Server_do_handshake(conn,ssl,stream);
     }
 
     NetworkType Get_Networktype() const;

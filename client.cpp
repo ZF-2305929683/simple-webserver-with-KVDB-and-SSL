@@ -3,6 +3,7 @@
 #include <iostream>
 #include "byteSerialize/byteSerializer.h"
 #include "net_src/Buffer.h"
+#include "SSL/SSL.h"
 
 struct client_struct
 {
@@ -24,6 +25,7 @@ struct TypeInfo<client_struct> :TypeInfoBase<client_struct>
     };
 };
 
+
 int main() {
   Socket *sock = new Socket();
   sock->Connect("127.0.0.1", 8888);
@@ -32,10 +34,23 @@ int main() {
 
   ByteStream stream;
   client_struct client_1;
-  
   client_1.key = 1;
   client_1.name = "client1";
+
+  simple_SSL Client(NetworkType::Client);
+
+  SSL_Struct client_ssl{"","","",""};
+
+  while(1){
+    if(Client.hand_shake()){
+        Client.do_hand_shake(conn,client_ssl,stream);
+    }
+    else break;
+  }
+
   while(true){
+    
+
     std::cout<<"输入对话"<<"\n";
     std::string str;
     std::getline(std::cin, str);

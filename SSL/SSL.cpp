@@ -1,6 +1,6 @@
 #include "SSL.h"
 
-simple_SSL::NetworkType simple_SSL::Get_Networktype() const
+NetworkType simple_SSL::Get_Networktype() const
 {
     return type_;
 }
@@ -192,18 +192,125 @@ std::string simple_SSL::RSA_decrypt(std::span<unsigned char> plaintext,std::uniq
 
 bool simple_SSL::RSA_init()
 {
-    FILE* public_fp = fopen("public.txt", "r");
+    FILE* public_fp = fopen("/home/user/http/SSL/public.txt", "r");
 	if (public_fp == NULL) {
 		perror("file error");
 		return false;
 	}
 	RSA_public_key.reset(PEM_read_PUBKEY(public_fp, NULL, NULL, NULL));
 	fclose(public_fp);
-    FILE* private_fp = fopen("private.txt", "r");
+    FILE* private_fp = fopen("/home/user/http/SSL/private.txt", "r");
 	if (private_fp == NULL) {
 		perror("file error");
 		return false;
 	}
 	RSA_private_key.reset(PEM_read_PrivateKey(private_fp, NULL, NULL, NULL));
 	fclose(private_fp);
+	return true;
+}
+
+void simple_SSL::ServerHello(Connection* conn,SSL_Struct& ssl,ByteStream& stream)
+{
+	std::cout << "Server send Hello" << "\n";
+	ssl.msg = "Server_Hello";
+	Serlize(stream,ssl);
+	conn->SetSendBuffer((const char*)stream.get_buffer().data(),stream.get_buffer().size());
+	stream.Clear();
+	conn->Write();
+	ServerState_ = ServerStateMachine::WaitingMessage;
+}
+
+void simple_SSL::wait_Finish(Connection* conn,SSL_Struct& ssl,ByteStream& stream)
+{
+	std::cout << "Server SSL Finish" << "\n";
+	ssl.msg = "Finish";
+	Serlize(stream,ssl);
+	conn->SetSendBuffer((const char*)stream.get_buffer().data(),stream.get_buffer().size());
+	stream.Clear();
+	conn->Write();
+	std::cout<<"链接建立成功"<<"\n";
+	ServerState_ = ServerStateMachine::Finish;
+}
+
+void simple_SSL::server_WaitingMessage(Connection* conn,SSL_Struct& ssl)
+{
+	std::cout << "Server waiting message" << "\n";
+	conn->Read();
+	ByteStream stream(conn->ReadBuffer(),conn->GetReadBuffer()->size());
+	Deserlize(stream,ssl);
+	if (ssl.msg == std::string("Client_Hello")) ServerState_ = ServerStateMachine::ServerHello;
+	else if (ssl.msg == std::string("Send_AES_Key")) ServerState_ = ServerStateMachine::wait_Finish;
+	else std::cout<<"错误消息"<<"\n";
+	
+}
+
+void simple_SSL::Server_do_handshake(Connection* conn,SSL_Struct& ssl,ByteStream& stream){
+	switch (ServerState_)
+	{
+	case ServerStateMachine::ServerHello:
+		ServerHello(conn,ssl,stream);
+		break;
+	case ServerStateMachine::WaitingMessage:
+		server_WaitingMessage(conn,ssl);
+		break;
+	case ServerStateMachine::wait_Finish:
+		wait_Finish(conn,ssl,stream);
+		break;
+	case ServerStateMachine::Finish:
+		return;
+	}
+}
+
+void simple_SSL::Clienthello(Connection* conn,SSL_Struct& ssl,ByteStream& stream) 
+{
+	std::cout << "Client send Hello" << "\n";
+	ssl.msg = "Client_Hello";
+	Serlize(stream,ssl);
+	conn->SetSendBuffer((const char*)stream.get_buffer().data(),stream.get_buffer().size());
+	stream.Clear();
+	conn->Write();
+	ClientState_ = ClientStateMachine::WaitingMessage;
+}
+void simple_SSL::KeyExchange(Connection* conn,SSL_Struct& ssl,ByteStream& stream)
+{
+	std::cout << "Client key Exchange" << "\n";
+	ssl.msg = "Send_AES_Key";
+	Serlize(stream,ssl);
+	conn->SetSendBuffer((const char*)stream.get_buffer().data(),stream.get_buffer().size());
+	stream.Clear();
+	conn->Write();
+	ClientState_ = ClientStateMachine::WaitingMessage;
+}
+
+void simple_SSL::client_WaitingMessage(Connection* conn,SSL_Struct& ssl)
+{
+	std::cout << "Client waiting message" << "\n";
+	conn->Read();
+	ByteStream stream(conn->ReadBuffer(),conn->GetReadBuffer()->size());
+	Deserlize(stream,ssl);
+	if (ssl.msg == std::string("Server_Hello")) ClientState_ = ClientStateMachine::KeyExchange;
+	else if (ssl.msg == std::string("Finish")) {
+		std::cout<<"链接建立成功"<<"\n";
+		ClientState_ = ClientStateMachine::Finish;
+	}
+	else std::cout<<"错误消息"<<"\n";
+	
+}
+
+
+void simple_SSL::Client_do_handshake(Connection* conn,SSL_Struct& ssl,ByteStream& stream){
+	switch (ClientState_)
+	{
+	case ClientStateMachine::ClientHello:
+		Clienthello(conn,ssl,stream);
+		break;
+	case ClientStateMachine::KeyExchange:
+		KeyExchange(conn,ssl,stream);
+		break;
+	case ClientStateMachine::WaitingMessage:
+		client_WaitingMessage(conn,ssl);
+		break;
+	case ClientStateMachine::Finish:
+		return;
+	}
 }

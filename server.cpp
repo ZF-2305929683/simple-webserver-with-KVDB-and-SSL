@@ -10,6 +10,8 @@
 #include "simple KVdb/GlobalCommandList.h"
 #include "simple KVdb/skiplist.h"
 #include "Singleton.h"
+#include "SSL/SSL.h"
+
 
 struct client_struct
 {
@@ -18,6 +20,7 @@ struct client_struct
     std::string msg;
     std::string Command;
 }; 
+
 
 template<>
 struct TypeInfo<client_struct> :TypeInfoBase<client_struct>
@@ -33,6 +36,8 @@ struct TypeInfo<client_struct> :TypeInfoBase<client_struct>
 
 
 
+
+
 int main()
 {
     std::map<int, Connection *> clients;
@@ -43,8 +48,19 @@ int main()
 
     Server *server = new Server(loop);
 
+    simple_SSL Server(NetworkType::Server);
+
     server->NewConnect(
         [&](Connection *conn) {
+        SSL_Struct client_ssl{"","","",""};
+        ByteStream stream;
+        
+        while(1){
+          if(Server.hand_shake()) {
+              Server.do_hand_shake(conn,client_ssl,stream);
+          }
+          else break;
+        }
         int clnt_fd = conn->GetSocket()->getFd();
         std::cout << "New connection fd: " << clnt_fd << std::endl;
         clients[clnt_fd] = conn;
@@ -55,11 +71,11 @@ int main()
     });
 
     ByteStream stream;
+    
 
     server->OnMessage(
       [&](Connection *conn){
 
-       
         ByteStream stream(conn->ReadBuffer(),conn->GetReadBuffer()->size());
         client_struct client;
         Deserlize(stream,client);

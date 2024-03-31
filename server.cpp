@@ -52,15 +52,7 @@ int main()
 
     server->NewConnect(
         [&](Connection *conn) {
-        SSL_Struct client_ssl{"","","",""};
-        ByteStream stream;
-        
-        while(1){
-          if(Server.hand_shake()) {
-              Server.do_hand_shake(conn,client_ssl,stream);
-          }
-          else break;
-        }
+            
         int clnt_fd = conn->GetSocket()->getFd();
         std::cout << "New connection fd: " << clnt_fd << std::endl;
         clients[clnt_fd] = conn;

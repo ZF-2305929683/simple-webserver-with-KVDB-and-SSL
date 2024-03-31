@@ -37,16 +37,6 @@ int main() {
   client_1.key = 1;
   client_1.name = "client1";
 
-  simple_SSL Client(NetworkType::Client);
-
-  SSL_Struct client_ssl{"","","",""};
-
-  while(1){
-    if(Client.hand_shake()){
-        Client.do_hand_shake(conn,client_ssl,stream);
-    }
-    else break;
-  }
 
   while(true){
     
